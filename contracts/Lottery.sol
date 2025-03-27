@@ -15,6 +15,8 @@ contract MonthlyLottery {
     uint256 public lotteryStart;
     uint256 public lotteryDuration = 30 days;
 
+    address constant WST_ADDRESS = 0x0000000000000000000000000000000000000400;
+
     event EnteredLottery(address indexed participant);
     event WinnerSelected(address indexed winner, uint256 amount);
 
@@ -23,9 +25,8 @@ contract MonthlyLottery {
         _;
     }
 
-    constructor(address tokenAddress) {
-        require(tokenAddress != address(0), "Invalid token address");
-        token = IERC20(tokenAddress);
+    constructor() {
+        token = IERC20(WST_ADDRESS);
         owner = msg.sender;
         lotteryStart = block.timestamp;
     }
