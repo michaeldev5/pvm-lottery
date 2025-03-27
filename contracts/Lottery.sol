@@ -1,22 +1,25 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+interface IERC20 {
+    function transfer(address recipient, uint256 amount) external returns (bool);
+    function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
+    function balanceOf(address account) external view returns (uint256);
+}
 
-contract MonthlyLottery is ReentrancyGuard {
-    IERC20 public immutable token;
-    address public immutable owner;
-    uint256 public constant FEE_PERCENT = 5;
-    address[] private participants;
+contract MonthlyLottery {
+    IERC20 public token;
+    address public owner;
+    uint256 public feePercent = 5;
+    address[] public participants;
     uint256 public lotteryStart;
-    uint256 public constant LOTTERY_DURATION = 30 days;
+    uint256 public lotteryDuration = 30 days;
 
     event EnteredLottery(address indexed participant);
     event WinnerSelected(address indexed winner, uint256 amount);
 
     modifier onlyOwner() {
-        require(msg.sender == owner, "Not authorized");
+        require(msg.sender == owner, "Not the contract owner");
         _;
     }
 
@@ -27,14 +30,14 @@ contract MonthlyLottery is ReentrancyGuard {
         lotteryStart = block.timestamp;
     }
 
-    function enterLottery() external nonReentrant {
+    function enterLottery() external {
         require(token.transferFrom(msg.sender, address(this), 1 ether), "Token transfer failed");
         participants.push(msg.sender);
         emit EnteredLottery(msg.sender);
     }
 
-    function selectWinner() external onlyOwner nonReentrant {
-        require(block.timestamp >= lotteryStart + LOTTERY_DURATION, "Lottery ongoing");
+    function selectWinner() external onlyOwner {
+        require(block.timestamp >= lotteryStart + lotteryDuration, "Lottery still ongoing");
         require(participants.length > 0, "No participants");
 
         uint256 randomNumber = uint256(
@@ -46,7 +49,7 @@ contract MonthlyLottery is ReentrancyGuard {
         address winner = participants[winnerIndex];
 
         uint256 totalBalance = token.balanceOf(address(this));
-        uint256 fee = (totalBalance * FEE_PERCENT) / 100;
+        uint256 fee = (totalBalance * feePercent) / 100;
         uint256 prizeAmount = totalBalance - fee;
 
         require(token.transfer(owner, fee), "Fee transfer failed");
